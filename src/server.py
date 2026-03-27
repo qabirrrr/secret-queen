@@ -25,15 +25,17 @@ def main():
 
                 if turn == 0:
                     data = conn.recv(1024)
+                    a,b,c = data.decode().split(",")
+                    print(a,b,c)
                     if not data: break
-                    print(f"Data retrieved from client : {data}")
                     conn.sendall(data)
                 
                 else:
-                    data2 = conn2.recv(1024)
-                    if not data2: break
-                    print(f"Data retrieved from client : {data2}")
-                    conn2.sendall(data2)
+                    data = conn2.recv(1024)
+                    a,b,c = data.decode().split(",")
+                    print(a,b,c)
+                    if not data: break
+                    conn2.sendall(data)
 
 if __name__ == "__main__":
     main()

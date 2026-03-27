@@ -1,5 +1,6 @@
 import socket
 import pygame
+import json
 
 SQUARE_SIZE = 64 # each square is 64 by 64
 PIECE_SIZE = 48 # each piece on the board is 48 by 48
@@ -198,8 +199,8 @@ def main():
     HOST = "127.0.0.1"
     PORT = 65432
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((HOST, PORT))
         
         #while True:
             #string = input("What would you like to send to the server?: ")
@@ -234,7 +235,8 @@ def main():
                         if rect.collidepoint(mousepos):
                             new = notation
                             sprites.update_board(old, new, piece)
-                            s.sendall(bytes(notation, 'utf-8'))
+                            data = f"{old},{new},{piece}" # unsafe approach, but who gives a shit?
+                            sock.sendall(bytes(data, 'utf-8'))
                             old = ""
                             new = ""
                             piece = ""
