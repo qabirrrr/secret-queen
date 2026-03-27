@@ -19,7 +19,7 @@ BLACK_QUEEN = 10
 BLACK_KING = 11
 BLACK_PAWN = 12
 
-all_notations = [
+notations = [
     'h1', 'g1', 'f1', 'e1', 'd1', 'c1', 'b1', 'a1',
     'h2', 'g2', 'f2', 'e2', 'd2', 'c2', 'b2', 'a2',
     'h3', 'g3', 'f3', 'e3', 'd3', 'c3', 'b3', 'a3',
@@ -77,39 +77,55 @@ class Sprites:
         texture = pygame.transform.scale(texture, scale)
         return texture
     
-    def update_board(self,parameter):
-        pass
+    def update_board(self, old_notation, new_notation, piece):
+        for i in range(len(notations)):
+            if notations[i] == old_notation:
+                board[i] = 0
+            elif notations[i] == new_notation:
+                board[i] = piece
+        print("Updated")
+        print(old_notation, new_notation, piece)
 
     def render_board(self, screen):
-        for notation, square in zip(all_notations, board):
-            self.render_square(square, notation, screen)
+        for notation, square in zip(notations, board):
+            if square != 0: self.render_square(square, notation, screen)
     
     def render_square(self, square, notation, screen):
+        piece = ""
         if square == WHITE_ROOK:
-            screen.blit(self.white_rook, place_piece(notation))
+            piece = self.white_rook
         elif square == WHITE_KNIGHT:
-            screen.blit(self.white_knight, place_piece(notation))
+            piece = self.white_knight
         elif square == WHITE_BISHOP:
-            screen.blit(self.white_bishop, place_piece(notation))
+            piece = self.white_bishop
         elif square == WHITE_QUEEN:
-            screen.blit(self.white_queen, place_piece(notation)) 
+            piece = self.white_queen
         elif square == WHITE_KING:
-            screen.blit(self.white_king, place_piece(notation)) 
+            piece = self.white_king
         elif square == WHITE_PAWN:
-            screen.blit(self.white_pawn, place_piece(notation))
+            piece = self.white_pawn
 
         elif square == BLACK_ROOK:
-            screen.blit(self.black_rook, place_piece(notation))
+           piece = self.black_rook
         elif square == BLACK_KNIGHT:
-            screen.blit(self.black_knight, place_piece(notation))
+            piece = self.black_knight
         elif square == BLACK_BISHOP:
-            screen.blit(self.black_bishop, place_piece(notation))
+            piece = self.black_bishop
         elif square == BLACK_QUEEN:
-            screen.blit(self.black_queen, place_piece(notation)) 
+            piece = self.black_queen
         elif square == BLACK_KING:
-            screen.blit(self.black_king, place_piece(notation)) 
+            piece = self.black_king
         elif square == BLACK_PAWN:
-            screen.blit(self.black_pawn, place_piece(notation))
+            piece = self.black_pawn
+
+        screen.blit(piece, place_piece(notation))
+
+def is_black(square):
+    if square >= 1 and square <= 6:
+        return True
+    elif square >= 7 and square <= 12:
+        return False
+
 
 def get_notation(y, x):
     notation = ""
@@ -152,20 +168,15 @@ def main():
     font = pygame.font.SysFont("monospace", 15)
     
     labels = []
-    notations = []
     coords = []
     rects = []
 
     for y in range(8):
         for x in range(8):
-            notation = get_notation(y, x)
-            label = font.render(f"{notation}", 1, (255,0,0))
+            n = get_notation(y, x)
+            label = font.render(f"{n}", 1, "blue")
             labels.append(label)
-            notations.append(notation)
             coords.append((x*64,y*64))   
-
-    for s in notations:
-        print(s)
 
     for coord in coords:
         rect = pygame.Rect(*coord, 64, 64)   
@@ -174,29 +185,69 @@ def main():
     sprites = Sprites()
 
     running = True
+
+    state = 1
+    selected = False
+    # 0 -> finding a piece to select (source)
+    # 1 -> finding where to place piece (destination)
+
+    old = ""
+    new = ""
+    piece = ""
+
+    HOST = "127.0.0.1"
+    PORT = 65432
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((HOST, PORT))
+        
+        #while True:
+            #string = input("What would you like to send to the server?: ")
+            #s.sendall(bytes(string, 'utf-8'))
+            #data = s.recv(1024)
+            #print(f"Data sent to server : '{data}'")
     
-    while running:
-        clicked = False
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.MOUSEBUTTONUP:
-                clicked = True
+        while running:
+            clicked = False
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                if event.type == pygame.MOUSEBUTTONUP:
+                    clicked = True
 
-        mousepos = pygame.mouse.get_pos()
-        for rect, notation in zip(rects, notations):
-            if rect.collidepoint(mousepos) and clicked:
-                print(notation)
+            mousepos = pygame.mouse.get_pos()
+            for rect, notation in zip(rects, notations):
+                if rect.collidepoint(mousepos) and clicked:
+                    print(notation)
 
-        screen.blit(sprites.board, (0,0))
+            if clicked:
+                state = (state + 1) % 2
+                
+                if state == 0:
+                    for square, notation, rect in zip(board, notations, rects):
+                        if rect.collidepoint(mousepos):
+                            old = notation
+                            piece = square
 
-        for coord, label in zip(coords,labels):
-            screen.blit(label, coord)
+                else:
+                    for square, notation, rect in zip(board, notations, rects):
+                        if rect.collidepoint(mousepos):
+                            new = notation
+                            sprites.update_board(old, new, piece)
+                            s.sendall(bytes(notation, 'utf-8'))
+                            old = ""
+                            new = ""
+                            piece = ""
 
-        sprites.render_board(screen)
+            screen.blit(sprites.board, (0,0))
 
-        pygame.display.flip()
-        clock.tick(60)
+            for coord, label in zip(coords,labels):
+                screen.blit(label, coord)
+
+            sprites.render_board(screen)
+
+            pygame.display.flip()
+            clock.tick(60)
 
     pygame.quit()
 
