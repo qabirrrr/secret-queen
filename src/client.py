@@ -1,6 +1,7 @@
 import socket
 import pygame
 import json
+import select
 
 SQUARE_SIZE = 64 # each square is 64 by 64
 PIECE_SIZE = 48 # each piece on the board is 48 by 48
@@ -199,6 +200,8 @@ def main():
     HOST = "127.0.0.1"
     PORT = 65432
 
+    i = 0
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
         
@@ -219,7 +222,7 @@ def main():
             mousepos = pygame.mouse.get_pos()
             for rect, notation in zip(rects, notations):
                 if rect.collidepoint(mousepos) and clicked:
-                    print(notation)
+                    print(f"Clicked on {notation}")
 
             if clicked:
                 state = (state + 1) % 2
@@ -242,6 +245,14 @@ def main():
                             piece = ""
 
             screen.blit(sprites.board, (0,0))
+
+            sock.setblocking(0)
+
+            ready = select.select([sock], [], [], 0)
+            if ready[0]:
+                data = sock.recv(4096)
+                old, new, piece = data.decode().split(",")
+                sprites.update_board(old, new, int(piece))
 
             for coord, label in zip(coords,labels):
                 screen.blit(label, coord)

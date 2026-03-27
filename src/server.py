@@ -28,14 +28,14 @@ def main():
                     a,b,c = data.decode().split(",")
                     print(a,b,c)
                     if not data: break
-                    conn.sendall(data)
+                    conn2.sendall(data)
                 
                 else:
                     data = conn2.recv(1024)
                     a,b,c = data.decode().split(",")
                     print(a,b,c)
                     if not data: break
-                    conn2.sendall(data)
+                    conn.sendall(data)
 
 if __name__ == "__main__":
     main()
