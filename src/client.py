@@ -105,10 +105,7 @@ class Sprites:
         elif square == BLACK_PAWN:
             piece = self.black_pawn
 
-        try:
-            screen.blit(piece, place_piece(notation))
-        except:
-            pass
+        screen.blit(piece, place_piece(notation))
 
 def is_black(square):
     if square >= 1 and square <= 6:
@@ -140,8 +137,6 @@ def place_piece(coord):
     
 
 def main():
-    global board
-
     pygame.init()
     screen = pygame.display.set_mode((512, 512))
     clock = pygame.time.Clock()
@@ -168,6 +163,8 @@ def main():
     HOST = "127.0.0.1"
     PORT = 65432
 
+    i = 0
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
         
@@ -180,12 +177,9 @@ def main():
         color = (sock.recv(1024)).decode()
         print(color)
 
-        if color == "white":
-            board.reverse()
 
         for notation in notations:
             n = notation
-            print(n)
             label = font.render(f"{n}", 1, "blue")
             labels.append(label)
             coords.append(get_coord(n))   
@@ -196,7 +190,6 @@ def main():
 
         while running:
             clicked = False
-            update = False
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -222,30 +215,21 @@ def main():
                         if rect.collidepoint(mousepos):
                             new = notation
                             sprites.update_board(old, new, piece)
-                            update = True
+                            data = f"{old},{new},{piece}" # unsafe af, but who gives a shit?
+                            sock.sendall(bytes(data, 'utf-8'))
                             old = ""
                             new = ""
                             piece = ""
 
             screen.blit(sprites.board, (0,0))
 
-            if update:
-                string = ""
-                for i, square in enumerate(board):
-                    string += f"{square}/" 
-                string = string[0:len(string)-1]
-                sock.sendall(bytes(string, 'utf-8'))
-
             sock.setblocking(0)
 
             ready = select.select([sock], [], [], 0)
             if ready[0]:
                 data = sock.recv(4096)
-                new_board = data.decode().split("/")
-                new_board = [int(a) for a in new_board]
-                if data: 
-                    board = new_board
-                    board.reverse()
+                old, new, piece = data.decode().split(",")
+                sprites.update_board(old, new, int(piece))
 
             for coord, label in zip(coords,labels):
                 screen.blit(label, coord)
