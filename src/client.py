@@ -73,11 +73,11 @@ class Sprites:
         print("Updated")
         print(old_notation, new_notation, piece)
 
-    def render_board(self, screen):
+    def render_board(self, screen, clientcolor):
         for notation, square in zip(notations, board):
-            if square != 0: self.render_square(square, notation, screen)
+            if square != 0: self.render_square(square, notation, screen, clientcolor)
     
-    def render_square(self, square, notation, screen):
+    def render_square(self, square, notation, screen, clientcolor):
         piece = ""
         if square == WHITE_ROOK:
             piece = self.white_rook
@@ -105,7 +105,7 @@ class Sprites:
         elif square == BLACK_PAWN:
             piece = self.black_pawn
 
-        screen.blit(piece, place_piece(notation))
+        screen.blit(piece, place_piece(notation, clientcolor))
 
 def is_black(square):
     if square >= 1 and square <= 6:
@@ -113,16 +113,28 @@ def is_black(square):
     elif square >= 7 and square <= 12:
         return False
 
-def get_coord(notation):
+def get_coord(notation, clientcolor, pr=False):
     alps = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
-    for i, alp in enumerate(alps):
-        if notation[0] == alp:
-            x = i * SQUARE_SIZE
-    y = (int(notation[1]) - 1) * SQUARE_SIZE
-    return (x, y)
 
-def place_piece(coord):
-    coord = get_coord(coord)
+    if clientcolor == "black":
+        for i, alp in enumerate(alps):
+            if notation[0] == alp:
+                x = i * SQUARE_SIZE
+                if pr: print("black", i, x)
+        y = (int(notation[1]) - 1) * SQUARE_SIZE    
+        return (x,y)
+
+    elif clientcolor == "white":
+        alps.reverse()
+        for i, alp in enumerate(alps):
+            if notation[0] == alp:
+                x = i * SQUARE_SIZE
+        y = abs(8-int(notation[1])) * SQUARE_SIZE
+        if pr: print("white", x, y)
+        return (x,y)
+
+def place_piece(notation, clientcolor):
+    coord = get_coord(notation, clientcolor)
 
     first = coord[0]
     second = coord[1]
@@ -174,15 +186,14 @@ def main():
             #data = s.recv(1024)
             #print(f"Data sent to server : '{data}'")
 
-        color = (sock.recv(1024)).decode()
-        print(color)
-
+        clientcolor = (sock.recv(1024)).decode()
+        print(clientcolor)
 
         for notation in notations:
             n = notation
             label = font.render(f"{n}", 1, "blue")
             labels.append(label)
-            coords.append(get_coord(n))   
+            coords.append(get_coord(n, clientcolor, pr=True))   
 
         for coord in coords:
             rect = pygame.Rect(*coord, 64, 64)   
@@ -234,7 +245,7 @@ def main():
             for coord, label in zip(coords,labels):
                 screen.blit(label, coord)
 
-            sprites.render_board(screen)
+            sprites.render_board(screen, clientcolor)
 
             pygame.display.flip()
             clock.tick(60)
