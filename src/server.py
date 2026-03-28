@@ -20,20 +20,20 @@ def main():
 
         with conn and conn2:
             print("\nBoth users have joined\n")
+            conn.sendall(b"white")
+            conn2.sendall(b"black")
             while True:
                 turn = (turn + 1) % 2
 
                 if turn == 0:
-                    data = conn.recv(1024)
-                    a,b,c = data.decode().split(",")
-                    print(a,b,c)
+                    data = conn.recv(4096)
+                    print(data)
                     if not data: break
                     conn2.sendall(data)
                 
                 else:
-                    data = conn2.recv(1024)
-                    a,b,c = data.decode().split(",")
-                    print(a,b,c)
+                    data = conn2.recv(4096)
+                    print(data)
                     if not data: break
                     conn.sendall(data)
 

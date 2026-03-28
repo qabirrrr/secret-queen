@@ -43,21 +43,6 @@ board = [
     BLACK_ROOK, BLACK_KNIGHT, BLACK_BISHOP, BLACK_KING, BLACK_QUEEN, BLACK_BISHOP, BLACK_KNIGHT, BLACK_ROOK
 ]
 
-'''
-def main():
-    HOST = "127.0.0.1"
-    PORT = 65432
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-
-        while True:
-            string = input("What would you like to send to the server?: ")
-            s.sendall(bytes(string, 'utf-8'))
-            data = s.recv(1024)
-            print(f"Data sent to server : '{data}'")
-'''
-
 class Sprites:
     def __init__(self):
         self.board = self.load_texture("res/board.png", (512, 512))
@@ -120,7 +105,10 @@ class Sprites:
         elif square == BLACK_PAWN:
             piece = self.black_pawn
 
-        screen.blit(piece, place_piece(notation))
+        try:
+            screen.blit(piece, place_piece(notation))
+        except:
+            pass
 
 def is_black(square):
     if square >= 1 and square <= 6:
@@ -128,30 +116,19 @@ def is_black(square):
     elif square >= 7 and square <= 12:
         return False
 
-
-def get_notation(y, x):
-    notation = ""
-    alps = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
-    for i, alp in enumerate(alps):
-        if x == i:
-            notation += alp
-            break
-    notation += f'{y+1}'
-    return notation
-
 def get_coord(notation):
     alps = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
     for i, alp in enumerate(alps):
         if notation[0] == alp:
             x = i * SQUARE_SIZE
     y = (int(notation[1]) - 1) * SQUARE_SIZE
-    return (x,y)
+    return (x, y)
 
-def place_piece(notation):
-    notation = get_coord(notation)
+def place_piece(coord):
+    coord = get_coord(coord)
 
-    first = notation[0]
-    second = notation[1]
+    first = coord[0]
+    second = coord[1]
 
     middle_x = (SQUARE_SIZE - PIECE_SIZE) / 2
     middle_y = (SQUARE_SIZE - PIECE_SIZE) / 2
@@ -163,6 +140,8 @@ def place_piece(notation):
     
 
 def main():
+    global board
+
     pygame.init()
     screen = pygame.display.set_mode((512, 512))
     clock = pygame.time.Clock()
@@ -172,17 +151,6 @@ def main():
     labels = []
     coords = []
     rects = []
-
-    for y in range(8):
-        for x in range(8):
-            n = get_notation(y, x)
-            label = font.render(f"{n}", 1, "blue")
-            labels.append(label)
-            coords.append((x*64,y*64))   
-
-    for coord in coords:
-        rect = pygame.Rect(*coord, 64, 64)   
-        rects.append(rect)
 
     sprites = Sprites()
 
@@ -200,8 +168,6 @@ def main():
     HOST = "127.0.0.1"
     PORT = 65432
 
-    i = 0
-
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
         
@@ -210,9 +176,27 @@ def main():
             #s.sendall(bytes(string, 'utf-8'))
             #data = s.recv(1024)
             #print(f"Data sent to server : '{data}'")
-    
+
+        color = (sock.recv(1024)).decode()
+        print(color)
+
+        if color == "white":
+            board.reverse()
+
+        for notation in notations:
+            n = notation
+            print(n)
+            label = font.render(f"{n}", 1, "blue")
+            labels.append(label)
+            coords.append(get_coord(n))   
+
+        for coord in coords:
+            rect = pygame.Rect(*coord, 64, 64)   
+            rects.append(rect)
+
         while running:
             clicked = False
+            update = False
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -238,21 +222,30 @@ def main():
                         if rect.collidepoint(mousepos):
                             new = notation
                             sprites.update_board(old, new, piece)
-                            data = f"{old},{new},{piece}" # unsafe approach, but who gives a shit?
-                            sock.sendall(bytes(data, 'utf-8'))
+                            update = True
                             old = ""
                             new = ""
                             piece = ""
 
             screen.blit(sprites.board, (0,0))
 
+            if update:
+                string = ""
+                for i, square in enumerate(board):
+                    string += f"{square}/" 
+                string = string[0:len(string)-1]
+                sock.sendall(bytes(string, 'utf-8'))
+
             sock.setblocking(0)
 
             ready = select.select([sock], [], [], 0)
             if ready[0]:
                 data = sock.recv(4096)
-                old, new, piece = data.decode().split(",")
-                sprites.update_board(old, new, int(piece))
+                new_board = data.decode().split("/")
+                new_board = [int(a) for a in new_board]
+                if data: 
+                    board = new_board
+                    board.reverse()
 
             for coord, label in zip(coords,labels):
                 screen.blit(label, coord)
