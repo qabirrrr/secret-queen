@@ -43,6 +43,30 @@ board = [
     BLACK_ROOK, BLACK_KNIGHT, BLACK_BISHOP, BLACK_KING, BLACK_QUEEN, BLACK_BISHOP, BLACK_KNIGHT, BLACK_ROOK
 ]
 
+class Logic:
+    def __init__(self):
+        self.piece = [self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn,
+                    self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn
+        ]
+
+    def rook(self):
+        print("Rook")
+
+    def knight(self):
+        print("Knight")
+
+    def bishop(self):
+        print("Bishop")
+
+    def queen(self):
+        print("Queen")
+
+    def king(self):
+        print("King")
+
+    def pawn(self):
+        print("Pawn")
+
 class Sprites:
     def __init__(self):
         self.board = self.load_texture("res/board.png", (512, 512))
@@ -146,6 +170,12 @@ def place_piece(notation, clientcolor):
     second += middle_y
 
     return (first, second)
+
+def select_piece(notation, square, logic):
+    old = notation
+    piece = square
+    logic.piece[square-1]()
+    return old, piece
     
 
 def main():
@@ -160,6 +190,7 @@ def main():
     rects = []
 
     sprites = Sprites()
+    logic = Logic()
 
     running = True
 
@@ -214,23 +245,26 @@ def main():
             if clicked and turn:
                 state = (state + 1) % 2
                 
-                if state == 0:
+                if state == 0: # select a piece
                     for square, notation, rect in zip(board, notations, rects):
                         if rect.collidepoint(mousepos):
-                            if get_color(square) != clientcolor:
+                            if get_color(square) != clientcolor: # can only select my own color
                                 state = 1
                                 break
-                            old = notation
-                            piece = square
+                            old, piece = select_piece(notation, square, logic)
 
-                else:
+                else: # move the piece
                     for square, notation, rect in zip(board, notations, rects):
                         if rect.collidepoint(mousepos):
-                            if get_color(square) == clientcolor:
-                                old = notation
-                                piece = square
+                            if get_color(square) == clientcolor: # cannot capture my own color. instead, select it as new piece
+                                old, piece = select_piece(notation, square, logic)
                                 state = 0
                                 break
+                            
+                            # legal_moves = []
+                            # if notation in legal_moves:
+                                # all this logic below
+
                             new = notation
                             sprites.update_board(old, new, piece)
                             data = f"{old},{new},{piece}" # unsafe af, but who gives a shit?
