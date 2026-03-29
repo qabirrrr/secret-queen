@@ -107,11 +107,11 @@ class Sprites:
 
         screen.blit(piece, place_piece(notation, clientcolor))
 
-def is_black(square):
+def get_color(square):
     if square >= 1 and square <= 6:
-        return True
+        return "white"
     elif square >= 7 and square <= 12:
-        return False
+        return "black"
 
 def get_coord(notation, clientcolor, pr=False):
     alps = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
@@ -122,7 +122,6 @@ def get_coord(notation, clientcolor, pr=False):
                 x = i * SQUARE_SIZE
                 if pr: print("black", i, x)
         y = (int(notation[1]) - 1) * SQUARE_SIZE    
-        return (x,y)
 
     elif clientcolor == "white":
         alps.reverse()
@@ -131,7 +130,8 @@ def get_coord(notation, clientcolor, pr=False):
                 x = i * SQUARE_SIZE
         y = abs(8-int(notation[1])) * SQUARE_SIZE
         if pr: print("white", x, y)
-        return (x,y)
+
+    return (x, y)
 
 def place_piece(notation, clientcolor):
     coord = get_coord(notation, clientcolor)
@@ -180,14 +180,13 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
         
-        #while True:
-            #string = input("What would you like to send to the server?: ")
-            #s.sendall(bytes(string, 'utf-8'))
-            #data = s.recv(1024)
-            #print(f"Data sent to server : '{data}'")
-
         clientcolor = (sock.recv(1024)).decode()
         print(clientcolor)
+
+        if clientcolor == "white":
+            turn = True
+        else:
+            turn = False
 
         for notation in notations:
             n = notation
@@ -212,18 +211,26 @@ def main():
                 if rect.collidepoint(mousepos) and clicked:
                     print(f"Clicked on {notation}")
 
-            if clicked:
+            if clicked and turn:
                 state = (state + 1) % 2
                 
                 if state == 0:
                     for square, notation, rect in zip(board, notations, rects):
                         if rect.collidepoint(mousepos):
+                            if get_color(square) != clientcolor:
+                                state = 1
+                                break
                             old = notation
                             piece = square
 
                 else:
                     for square, notation, rect in zip(board, notations, rects):
                         if rect.collidepoint(mousepos):
+                            if get_color(square) == clientcolor:
+                                old = notation
+                                piece = square
+                                state = 0
+                                break
                             new = notation
                             sprites.update_board(old, new, piece)
                             data = f"{old},{new},{piece}" # unsafe af, but who gives a shit?
@@ -231,6 +238,7 @@ def main():
                             old = ""
                             new = ""
                             piece = ""
+                            turn = False
 
             screen.blit(sprites.board, (0,0))
 
@@ -241,6 +249,7 @@ def main():
                 data = sock.recv(4096)
                 old, new, piece = data.decode().split(",")
                 sprites.update_board(old, new, int(piece))
+                turn = True
 
             for coord, label in zip(coords,labels):
                 screen.blit(label, coord)
