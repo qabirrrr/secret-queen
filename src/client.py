@@ -6,6 +6,8 @@ import select
 SQUARE_SIZE = 64 # each square is 64 by 64
 PIECE_SIZE = 48 # each piece on the board is 48 by 48
 
+ALPHABETS = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
+
 # enums
 # 0 = empty
 WHITE_ROOK = 1
@@ -45,27 +47,92 @@ board = [
 
 class Logic:
     def __init__(self):
-        self.piece = [self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn,
+        self.pieces = [self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn,
                     self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn
         ]
 
-    def rook(self):
+    def rook(self, current_notation, clientcolor): # -> todo: return legal moves in each function
         print("Rook")
+        return ["d4", "d5"]
 
-    def knight(self):
+    def knight(self, current_notation, clientcolor):
         print("Knight")
+        return ["d4", "d5"]
 
-    def bishop(self):
+    def bishop(self, current_notation, clientcolor):
         print("Bishop")
+        return ["d4", "d5"]
 
-    def queen(self):
+    def queen(self, current_notation, clientcolor):
         print("Queen")
-
-    def king(self):
+        return ["d4", "d5"]
+    
+    def king(self, current_notation, clientcolor):
         print("King")
+        return ["d4", "d5"]
 
-    def pawn(self):
-        print("Pawn")
+    def pawn(self, current_notation, clientcolor):
+        possible_capture_alphabets = []
+        legal_moves = []
+
+        if clientcolor == "white":
+            next_square = +1
+            starting_square = 2
+            second_square = 4
+            enemy_color = "black"
+        else:
+            next_square = -1
+            starting_square = 7
+            second_square = 5
+            enemy_color = "white"
+
+
+        # forward moves
+
+        one_square = current_notation[0] + f"{int(current_notation[1]) + next_square}" # 1 square above
+        for square, notation in zip(board, notations):
+            if one_square == notation:
+                blockage = square != 0 # a piece is already blocking the square
+
+        if not blockage:
+            legal_moves.append(one_square)
+            if int(current_notation[1]) == starting_square:
+                    two_squares = current_notation[0] + str(second_square) # 2 squares above for starting position
+                    legal_moves.append(two_squares)
+
+
+
+        # captures 
+
+        alps = list(ALPHABETS)
+        alps.reverse()
+        for i, each in enumerate(alps):
+            if each == current_notation[0]:
+                try: 
+                    if each != 'h': possible_capture_alphabets.append(alps[i+1])
+                except: pass
+
+                try: 
+                    if each != 'a': possible_capture_alphabets.append(alps[i-1])
+                except: pass
+
+
+        possible_captures = [f"{alp}{int(current_notation[1])+next_square}" for alp in possible_capture_alphabets]
+
+        legal_captures = []
+        for possible_capture in possible_captures:
+            for square, notation in zip(board, notations):
+                if possible_capture == notation:
+                    if square != 0:
+                        if get_color(square) == enemy_color: legal_captures.append(possible_capture) # capturing enemy pawn
+                        break
+
+        legal_moves += legal_captures
+
+
+        # en passant (opponent's previous move is a 2 square push && my pawn is beside it)
+
+        return legal_moves
 
 class Sprites:
     def __init__(self):
@@ -94,6 +161,17 @@ class Sprites:
                 board[i] = 0
             elif notations[i] == new_notation:
                 board[i] = piece
+                new_idx = i
+
+        # pawn promotion
+        # (later on make it so you can choose knight, bishop or rook)
+        if piece == WHITE_PAWN:
+            if int(new_notation[1]) == 8:
+                board[new_idx] = WHITE_QUEEN
+        elif piece == BLACK_PAWN:
+            if int(new_notation[1]) == 1:
+                board[new_idx] = BLACK_QUEEN
+
         print("Updated")
         print(old_notation, new_notation, piece)
 
@@ -131,20 +209,25 @@ class Sprites:
 
         screen.blit(piece, place_piece(notation, clientcolor))
 
+def render_legals(screen, rects, legal_moves):
+    for notation, rec in zip(notations, rects):
+        if notation in legal_moves:
+            pygame.draw.rect(screen, "black", rec)
+
 def get_color(square):
     if square >= 1 and square <= 6:
         return "white"
     elif square >= 7 and square <= 12:
         return "black"
+        
 
-def get_coord(notation, clientcolor, pr=False):
-    alps = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
+def get_coord(notation, clientcolor):
+    alps = list(ALPHABETS)
 
     if clientcolor == "black":
         for i, alp in enumerate(alps):
             if notation[0] == alp:
                 x = i * SQUARE_SIZE
-                if pr: print("black", i, x)
         y = (int(notation[1]) - 1) * SQUARE_SIZE    
 
     elif clientcolor == "white":
@@ -153,7 +236,6 @@ def get_coord(notation, clientcolor, pr=False):
             if notation[0] == alp:
                 x = i * SQUARE_SIZE
         y = abs(8-int(notation[1])) * SQUARE_SIZE
-        if pr: print("white", x, y)
 
     return (x, y)
 
@@ -171,11 +253,12 @@ def place_piece(notation, clientcolor):
 
     return (first, second)
 
-def select_piece(notation, square, logic):
+def select_piece(notation, square, logic, clientcolor): # -> todo: also return legal moves 
     old = notation
     piece = square
-    logic.piece[square-1]()
-    return old, piece
+    legal_moves = logic.pieces[square-1](old, clientcolor)
+    print(f"Legal moves are {legal_moves}")
+    return legal_moves, old, piece
     
 
 def main():
@@ -206,7 +289,9 @@ def main():
     HOST = "127.0.0.1"
     PORT = 65432
 
-    i = 0
+    legal_moves = []
+
+    previous_opponent_move = []
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
@@ -223,7 +308,7 @@ def main():
             n = notation
             label = font.render(f"{n}", 1, "blue")
             labels.append(label)
-            coords.append(get_coord(n, clientcolor, pr=True))   
+            coords.append(get_coord(n, clientcolor))   
 
         for coord in coords:
             rect = pygame.Rect(*coord, 64, 64)   
@@ -251,28 +336,30 @@ def main():
                             if get_color(square) != clientcolor: # can only select my own color
                                 state = 1
                                 break
-                            old, piece = select_piece(notation, square, logic)
+                            legal_moves, old, piece = select_piece(notation, square, logic, clientcolor)
 
                 else: # move the piece
                     for square, notation, rect in zip(board, notations, rects):
                         if rect.collidepoint(mousepos):
                             if get_color(square) == clientcolor: # cannot capture my own color. instead, select it as new piece
-                                old, piece = select_piece(notation, square, logic)
+                                legal_moves, old, piece = select_piece(notation, square, logic, clientcolor)
                                 state = 0
                                 break
                             
-                            # legal_moves = []
-                            # if notation in legal_moves:
-                                # all this logic below
+                            if notation in legal_moves:
+                                new = notation
+                                sprites.update_board(old, new, piece)
+                                data = f"{old},{new},{piece}" # unsafe af, but who gives a shit?
+                                sock.sendall(bytes(data, 'utf-8'))
+                                old = ""
+                                new = ""
+                                piece = ""
+                                legal_moves = []
+                                turn = False
 
-                            new = notation
-                            sprites.update_board(old, new, piece)
-                            data = f"{old},{new},{piece}" # unsafe af, but who gives a shit?
-                            sock.sendall(bytes(data, 'utf-8'))
-                            old = ""
-                            new = ""
-                            piece = ""
-                            turn = False
+                            else:
+                                state = 0
+                                break
 
             screen.blit(sprites.board, (0,0))
 
@@ -283,12 +370,14 @@ def main():
                 data = sock.recv(4096)
                 old, new, piece = data.decode().split(",")
                 sprites.update_board(old, new, int(piece))
+                previous_opponent_move = [old, new]
                 turn = True
 
             for coord, label in zip(coords,labels):
                 screen.blit(label, coord)
 
             sprites.render_board(screen, clientcolor)
+            render_legals(screen, rects, legal_moves)
 
             pygame.display.flip()
             clock.tick(60)
