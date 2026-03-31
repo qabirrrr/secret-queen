@@ -74,8 +74,45 @@ class Logic:
         # if king hasnt moved:
             # O-O
             # O-O-O
-        print("King")
-        return ["d4", "d5"]
+        
+        possibles = []
+        legals = []
+
+        alps = list(ALPHABETS)
+        alps.reverse()
+
+        besides = get_beside(current_notation[0])
+
+        try: possibles.append (f"{current_notation[0]}{int(current_notation[1])+1}")
+        except: pass
+
+        try: 
+            if int(current_notation[1]) != 1:
+                possibles.append (f"{current_notation[0]}{int(current_notation[1])-1}")
+        except: pass
+
+        for beside in besides:
+            try: 
+                possibles.append (f"{beside}{int(current_notation[1])}")
+            except: pass
+
+            try: 
+                possibles.append (f"{beside}{int(current_notation[1])+1}")
+            except: pass
+
+            try: 
+                if int(current_notation[1]) != 1:
+                    possibles.append (f"{beside}{int(current_notation[1])-1}")
+            except: pass
+           
+
+        for possible in possibles:
+            for square, notation in zip(board, notations):
+                if possible == notation:
+                    if get_color(square) != clientcolor:
+                        legals.append(possible)
+
+        return legals
 
     def pawn(self, current_notation, clientcolor):
         self.possible_enpassant = []
@@ -108,7 +145,7 @@ class Logic:
 
         try:
             if int(self.previous_opponent_move[1][1]) == int(self.previous_opponent_move[0][1]) + enemy_double_push:
-                beside_letters = get_beside_pawn(self.previous_opponent_move[1][0])
+                beside_letters = get_beside(self.previous_opponent_move[1][0])
                 print(beside_letters)
                 if current_notation[0] in beside_letters and int(current_notation[1]) == int(self.previous_opponent_move[1][1]):
                     enpassant = True
@@ -120,17 +157,6 @@ class Logic:
             print(enpassant_notation)
             self.possible_enpassant = [current_notation, enpassant_notation]
             legal_moves += [enpassant_notation]
-
-        # to execute en passant,
-        # send "y" or "n" as last thing to server
-        # n means no en passant
-        # y means yes en passant
-
-        # add parameter to update_board() en_passant. (arguments is "y"/"n")
-        # if en_passant == "y":
-            # after pawn captures in front, remove the opponent pawn behind it
-            # (in other words, make the pawn originally beside it disappear. effectively capturing the pawn. hence, enpassant)
-            # (otherwise, the pawn wld go in front of the pawn. but the enemy pawn wldnt get captured)
 
         # forward moves
 
@@ -157,7 +183,7 @@ class Logic:
 
         # captures 
 
-        possible_capture_alphabets = get_beside_pawn(current_notation[0])
+        possible_capture_alphabets = get_beside(current_notation[0])
         possible_captures = [f"{alp}{int(current_notation[1])+next_square}" for alp in possible_capture_alphabets]
 
         legal_captures = []
@@ -279,7 +305,7 @@ class Sprites:
 
         screen.blit(piece, place_piece(notation, clientcolor))
 
-def get_beside_pawn(letter): # -> returns letters beside pawn
+def get_beside(letter): # -> returns letters beside pawn
     ml = []
     alps = list(ALPHABETS)
     alps.reverse()
