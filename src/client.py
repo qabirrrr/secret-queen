@@ -47,6 +47,7 @@ board = [
 
 class Logic:
     def __init__(self):
+        self.previous_opponent_move = []
         self.pieces = [self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn,
                     self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn
         ]
@@ -74,6 +75,25 @@ class Logic:
     def pawn(self, current_notation, clientcolor):
         possible_capture_alphabets = []
         legal_moves = []
+
+        # todo for enpassant:
+
+        # check if previous move is a pawn move
+        # check if it was a double push
+        # if it was, check if this pawn is DIRECTLY beside it (same rank, beside it)
+        # if it is, enpassant = true
+
+
+        # to execute en passant,
+        # send "y" or "n" as last thing to server
+        # n means no en passant
+        # y means yes en passant
+
+        # add parameter to update_board() en_passant. (arguments is "y"/"n")
+        # if en_passant == "y":
+            # after pawn captures in front, remove the opponent pawn behind it
+            # (in other words, make the pawn originally beside it disappear. effectively capturing the pawn. hence, enpassant)
+            # (otherwise, the pawn wld go in front of the pawn. but the enemy pawn wldnt get captured)
 
         if clientcolor == "white":
             next_square = +1
@@ -313,8 +333,6 @@ def main():
 
     promotion_icon = "Q"
 
-    previous_opponent_move = []
-
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
         
@@ -402,7 +420,7 @@ def main():
                 data = sock.recv(4096)
                 old, new, piece = data.decode().split(",")
                 sprites.update_board(old, new, int(piece))
-                previous_opponent_move = [old, new]
+                logic.previous_opponent_move = [old, new, int(piece)]
                 turn = True
 
             for coord, label in zip(coords,labels):
