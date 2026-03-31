@@ -155,7 +155,7 @@ class Sprites:
         texture = pygame.transform.scale(texture, scale)
         return texture
     
-    def update_board(self, old_notation, new_notation, piece):
+    def update_board(self, old_notation, new_notation, piece, promotion_icon = "Q"):
         for i in range(len(notations)):
             if notations[i] == old_notation:
                 board[i] = 0
@@ -166,11 +166,31 @@ class Sprites:
         # pawn promotion
         # (later on make it so you can choose knight, bishop or rook)
         if piece == WHITE_PAWN:
+
+            if promotion_icon == "Q":
+                promotion_piece = WHITE_QUEEN
+            elif promotion_icon == "N":
+                promotion_piece = WHITE_KNIGHT
+            elif promotion_icon == "B":
+                promotion_piece = WHITE_BISHOP
+            elif promotion_icon == "R":
+                promotion_piece = WHITE_ROOK
+
             if int(new_notation[1]) == 8:
-                board[new_idx] = WHITE_QUEEN
+                board[new_idx] = promotion_piece
+
         elif piece == BLACK_PAWN:
+            if promotion_icon == "Q":
+                promotion_piece = BLACK_QUEEN
+            elif promotion_icon == "N":
+                promotion_piece = BLACK_KNIGHT
+            elif promotion_icon == "B":
+                promotion_piece = BLACK_BISHOP
+            elif promotion_icon == "R":
+                promotion_piece = BLACK_ROOK
+
             if int(new_notation[1]) == 1:
-                board[new_idx] = BLACK_QUEEN
+                board[new_idx] = promotion_piece
 
         print("Updated")
         print(old_notation, new_notation, piece)
@@ -291,6 +311,8 @@ def main():
 
     legal_moves = []
 
+    promotion_icon = "Q"
+
     previous_opponent_move = []
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -321,6 +343,16 @@ def main():
                     running = False
                 if event.type == pygame.MOUSEBUTTONUP:
                     clicked = True
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        promotion_icon = "Q"
+                    elif event.key == pygame.K_b:
+                        promotion_icon = "B"
+                    elif event.key == pygame.K_n:
+                        promotion_icon = "N"
+                    elif event.key == pygame.K_r:
+                        promotion_icon = "R"
+                    print(promotion_icon)
 
             mousepos = pygame.mouse.get_pos()
             for rect, notation in zip(rects, notations):
@@ -348,7 +380,7 @@ def main():
                             
                             if notation in legal_moves:
                                 new = notation
-                                sprites.update_board(old, new, piece)
+                                sprites.update_board(old, new, piece, promotion_icon)
                                 data = f"{old},{new},{piece}" # unsafe af, but who gives a shit?
                                 sock.sendall(bytes(data, 'utf-8'))
                                 old = ""
