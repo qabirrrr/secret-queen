@@ -48,6 +48,7 @@ board = [
 class Logic:
     def __init__(self):
         self.previous_opponent_move = []
+        self.possible_enpassant = [] # [initial notation, capture notation]
         self.pieces = [self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn,
                     self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn
         ]
@@ -69,12 +70,32 @@ class Logic:
         return ["d4", "d5"]
     
     def king(self, current_notation, clientcolor):
+        # king moves
+        # if king hasnt moved:
+            # O-O
+            # O-O-O
         print("King")
         return ["d4", "d5"]
 
     def pawn(self, current_notation, clientcolor):
+        self.possible_enpassant = []
+
         possible_capture_alphabets = []
         legal_moves = []
+
+        if clientcolor == "white":
+            next_square = +1
+            enemy_double_push = -2
+            starting_square = 2
+            second_square = 4
+            enemy_color = "black"
+
+        else:
+            next_square = -1
+            enemy_double_push = 2
+            starting_square = 7
+            second_square = 5
+            enemy_color = "white"
 
         # todo for enpassant:
 
@@ -83,6 +104,22 @@ class Logic:
         # if it was, check if this pawn is DIRECTLY beside it (same rank, beside it)
         # if it is, enpassant = true
 
+        enpassant = False
+
+        try:
+            if int(self.previous_opponent_move[1][1]) == int(self.previous_opponent_move[0][1]) + enemy_double_push:
+                beside_letters = get_beside_pawn(self.previous_opponent_move[1][0])
+                print(beside_letters)
+                if current_notation[0] in beside_letters and int(current_notation[1]) == int(self.previous_opponent_move[1][1]):
+                    enpassant = True
+        except: pass
+
+        print(enpassant)
+        if enpassant:
+            enpassant_notation = f"{self.previous_opponent_move[1][0]}{int(self.previous_opponent_move[1][1])+next_square}"
+            print(enpassant_notation)
+            self.possible_enpassant = [current_notation, enpassant_notation]
+            legal_moves += [enpassant_notation]
 
         # to execute en passant,
         # send "y" or "n" as last thing to server
@@ -95,48 +132,32 @@ class Logic:
             # (in other words, make the pawn originally beside it disappear. effectively capturing the pawn. hence, enpassant)
             # (otherwise, the pawn wld go in front of the pawn. but the enemy pawn wldnt get captured)
 
-        if clientcolor == "white":
-            next_square = +1
-            starting_square = 2
-            second_square = 4
-            enemy_color = "black"
-        else:
-            next_square = -1
-            starting_square = 7
-            second_square = 5
-            enemy_color = "white"
-
-
         # forward moves
 
         one_square = current_notation[0] + f"{int(current_notation[1]) + next_square}" # 1 square above
+        double_square = current_notation[0] + f"{int(current_notation[1]) + (next_square * 2)}" # 1 square above
+        
         for square, notation in zip(board, notations):
             if one_square == notation:
                 blockage = square != 0 # a piece is already blocking the square
+            if double_square == notation:
+                blockage2 = square != 0
 
-        if not blockage:
-            legal_moves.append(one_square)
-            if int(current_notation[1]) == starting_square:
+        try:
+
+            if not blockage:
+                legal_moves.append(one_square)
+            
+            if not blockage2:
+                if int(current_notation[1]) == starting_square:
                     two_squares = current_notation[0] + str(second_square) # 2 squares above for starting position
                     legal_moves.append(two_squares)
 
-
+        except: pass
 
         # captures 
 
-        alps = list(ALPHABETS)
-        alps.reverse()
-        for i, each in enumerate(alps):
-            if each == current_notation[0]:
-                try: 
-                    if each != 'h': possible_capture_alphabets.append(alps[i+1])
-                except: pass
-
-                try: 
-                    if each != 'a': possible_capture_alphabets.append(alps[i-1])
-                except: pass
-
-
+        possible_capture_alphabets = get_beside_pawn(current_notation[0])
         possible_captures = [f"{alp}{int(current_notation[1])+next_square}" for alp in possible_capture_alphabets]
 
         legal_captures = []
@@ -148,7 +169,6 @@ class Logic:
                         break
 
         legal_moves += legal_captures
-
 
         # en passant (opponent's previous move is a 2 square push && my pawn is beside it)
 
@@ -175,7 +195,7 @@ class Sprites:
         texture = pygame.transform.scale(texture, scale)
         return texture
     
-    def update_board(self, old_notation, new_notation, piece, promotion_icon = "Q"):
+    def update_board(self, old_notation, new_notation, piece, enpassant = 0, promotion_icon = "Q"):
         for i in range(len(notations)):
             if notations[i] == old_notation:
                 board[i] = 0
@@ -211,6 +231,16 @@ class Sprites:
 
             if int(new_notation[1]) == 1:
                 board[new_idx] = promotion_piece
+
+        # en passant
+        # remove pawn behind it
+        if enpassant:
+            notation_remove = f"{new_notation[0]}{old_notation[1]}"
+
+            for i in range(len(notations)):
+                if notations[i] == notation_remove:
+                    board[i] = 0
+                    break
 
         print("Updated")
         print(old_notation, new_notation, piece)
@@ -248,6 +278,21 @@ class Sprites:
             piece = self.black_pawn
 
         screen.blit(piece, place_piece(notation, clientcolor))
+
+def get_beside_pawn(letter): # -> returns letters beside pawn
+    ml = []
+    alps = list(ALPHABETS)
+    alps.reverse()
+    for i, each in enumerate(alps):
+        if each == letter:
+            try: 
+                if each != 'h': ml.append(alps[i+1])
+            except: pass
+
+            try: 
+                if each != 'a': ml.append(alps[i-1])
+            except: pass
+    return ml
 
 def render_legals(screen, rects, legal_moves):
     for notation, rec in zip(notations, rects):
@@ -397,9 +442,14 @@ def main():
                                 break
                             
                             if notation in legal_moves:
+                                enpassant = 0
                                 new = notation
-                                sprites.update_board(old, new, piece, promotion_icon)
-                                data = f"{old},{new},{piece}" # unsafe af, but who gives a shit?
+
+                                if logic.possible_enpassant == [old, new]:
+                                    enpassant = 1
+
+                                sprites.update_board(old, new, piece, enpassant, promotion_icon)
+                                data = f"{old},{new},{piece},{enpassant}" # unsafe af, but who gives a shit?
                                 sock.sendall(bytes(data, 'utf-8'))
                                 old = ""
                                 new = ""
@@ -418,8 +468,8 @@ def main():
             ready = select.select([sock], [], [], 0)
             if ready[0]:
                 data = sock.recv(4096)
-                old, new, piece = data.decode().split(",")
-                sprites.update_board(old, new, int(piece))
+                old, new, piece, enpassant = data.decode().split(",")
+                sprites.update_board(old, new, int(piece), int(enpassant))
                 logic.previous_opponent_move = [old, new, int(piece)]
                 turn = True
 
