@@ -142,8 +142,82 @@ class Logic:
         return legals
 
     def bishop(self, current_notation, clientcolor):
+        def get_moves(possibles, clientcolor):
+            legal_moves = []
+            iterate = True
+            for possible in possibles:
+                if not iterate: break
+                for square, notation in zip(board, notations):
+                    if possible == notation:
+                        if square != 0:
+                            if get_color(square) != clientcolor: legal_moves.append(notation)
+                            iterate = False
+                            break
+                        else:
+                            legal_moves.append(notation)
+                            break
+            return legal_moves
+
         print("Bishop")
-        return ["d4", "d5"]
+
+        letters_right = [] # letters beside
+        letters_left = []
+
+        possibles_left_up = []
+        possibles_right_up = []
+        possibles_left_down = []
+        possibles_right_down = []
+
+        possibles = []
+        legals = []
+
+        current_letter = current_notation[0]
+
+        left = True
+        for i, letter in enumerate(letters):
+            if letter == current_letter:
+                left = False
+                continue
+            if left: letters_left.append(letter)
+            else: letters_right.append(letter)
+
+        letters_left.reverse()
+
+        for i, letter_left in enumerate(letters_left):
+            try: possibles_left_up.append (f"{letter_left}{int(current_notation[1])+(i+1)}")
+            except: break
+
+        for i, letter_right in enumerate(letters_right):
+            try: possibles_right_up.append (f"{letter_right}{int(current_notation[1])+(i+1)}")
+            except: break
+
+        for i, letter_left in enumerate(letters_left):
+            try: 
+                possibles_left_down.append (f"{letter_left}{int(current_notation[1])-(i+1)}")
+            except: break
+
+        for i, letter_right in enumerate(letters_right):
+            try: possibles_right_down.append (f"{letter_right}{int(current_notation[1])-(i+1)}")
+            except: break
+
+        left_down = get_moves(possibles_left_down, clientcolor)
+        right_down = get_moves(possibles_right_down, clientcolor)
+        left_up = get_moves(possibles_left_up, clientcolor)
+        right_up = get_moves(possibles_right_up, clientcolor)
+
+        print(f"Legal Moves:")
+            
+        print(left_down)
+        print(right_down)
+        print(left_up)
+        print(right_up)
+        
+        legals += left_down
+        legals += right_down
+        legals += left_up
+        legals += right_up
+
+        return legals
 
     def queen(self, current_notation, clientcolor):
         print("Queen")
@@ -381,6 +455,12 @@ class Sprites:
             piece = self.black_pawn
 
         screen.blit(piece, place_piece(notation, clientcolor))
+
+def check_val(idx):
+    if idx < 0:
+        raise ValueError
+    else:
+        return idx
 
 def get_beside(letter, n = 1): # -> returns letters beside pawn
     ml = []
