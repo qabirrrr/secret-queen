@@ -10,6 +10,10 @@ ALPHABETS = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
 
 letters = list(reversed((ALPHABETS))) # ['a', 'b', ..]
 
+g_kingside_castle_possible = True
+g_queenside_castle_possible = True
+g_castled = False
+
 # enums
 # 0 = empty
 WHITE_ROOK = 1
@@ -51,6 +55,8 @@ class Logic:
     def __init__(self):
         self.previous_opponent_move = []
         self.possible_enpassant = [] # [initial notation, capture notation]
+        self.possible_kingside_castle = []
+        self.possible_queenside_castle = []
         self.pieces = [self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn,
                     self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn
         ]
@@ -224,10 +230,9 @@ class Logic:
     
     def king(self, current_notation, clientcolor):
         # king moves
-        # if king hasnt moved:
-            # O-O
-            # O-O-O
-        
+        self.possible_kingside_castle = []
+        self.possible_queenside_castle = []
+
         possibles = []
         legals = []
 
@@ -262,6 +267,21 @@ class Logic:
                     if get_color(square) != clientcolor:
                         legals.append(possible)
 
+        global g_kingside_castle_possible, g_queenside_castle_possible, g_castled
+
+        if not g_castled:   
+            if g_kingside_castle_possible:
+                if get_square(f"f{current_notation[1]}") == 0 and get_square(f"g{current_notation[1]}") == 0:
+                    legals += [f"g{current_notation[1]}"]
+                    self.possible_kingside_castle.append(current_notation)
+                    self.possible_kingside_castle.append(f"g{current_notation[1]}")
+            if g_queenside_castle_possible:
+                if get_square(f"b{current_notation[1]}") == 0 and get_square(f"c{current_notation[1]}") == 0 and get_square(f"d{current_notation[1]}") == 0:
+                    legals += [f"c{current_notation[1]}"]
+                    self.possible_queenside_castle.append(current_notation)
+                    self.possible_queenside_castle.append(f"c{current_notation[1]}")
+
+        print(legals)
         return legals
 
     def pawn(self, current_notation, clientcolor):
@@ -324,7 +344,7 @@ class Logic:
             if not blockage:
                 legal_moves.append(one_square)
             
-            if not blockage2:
+            if not blockage and not blockage2:
                 if int(current_notation[1]) == starting_square:
                     two_squares = current_notation[0] + str(second_square) # 2 squares above for starting position
                     legal_moves.append(two_squares)
@@ -371,7 +391,7 @@ class Sprites:
         texture = pygame.transform.scale(texture, scale)
         return texture
     
-    def update_board(self, old_notation, new_notation, piece, enpassant = 0, promotion_icon = "Q"):
+    def update_board(self, old_notation, new_notation, piece, me, enpassant = 0, o_o = 0, o_o_o = 0, promotion_icon = "Q"):
         for i in range(len(notations)):
             if notations[i] == old_notation:
                 board[i] = 0
@@ -418,6 +438,45 @@ class Sprites:
                     board[i] = 0
                     break
 
+        if me: 
+            global g_kingside_castle_possible, g_queenside_castle_possible
+            if piece == WHITE_ROOK or piece == BLACK_ROOK:
+                if old_notation[0] == 'a': g_queenside_castle_possible = False
+                elif old_notation[0] == 'h': g_kingside_castle_possible = False        
+
+            elif piece == WHITE_KING or piece == BLACK_KING: 
+                g_queenside_castle_possible = False
+                g_kingside_castle_possible = False    
+
+        print(f"O_O: {o_o}")
+        print(f"O_O_O: {o_o_o}")
+
+        global g_castled
+        if o_o:
+            rank = int(new_notation[1])
+            for i in range(len(board)):
+                if notations[i] == f"h{rank}":
+                    board[i] = 0
+                if notations[i] == f"f{rank}":
+                    if rank == 1: board[i] = WHITE_ROOK
+                    else: board[i] = BLACK_ROOK
+            if me: 
+                g_castled = True
+
+        if o_o_o:
+            rank = int(new_notation[1])
+            for i in range(len(board)):
+                if notations[i] == f"a{rank}":
+                    board[i] = 0
+                if notations[i] == f"d{rank}":
+                    if rank == 1: board[i] = WHITE_ROOK
+                    else: board[i] = BLACK_ROOK
+            if me:
+                g_castled = True
+
+        print(g_queenside_castle_possible)
+        print(g_kingside_castle_possible)
+        
         print("Updated")
         print(old_notation, new_notation, piece)
 
@@ -454,6 +513,11 @@ class Sprites:
             piece = self.black_pawn
 
         screen.blit(piece, place_piece(notation, clientcolor))
+
+def get_square(note):
+    for square, notation in zip(board, notations):
+        if note == notation:
+            return square
 
 def check_val(idx):
     if idx < 0:
@@ -624,13 +688,21 @@ def main():
                             
                             if notation in legal_moves:
                                 enpassant = 0
+                                o_o = 0
+                                o_o_o = 0
                                 new = notation
 
                                 if logic.possible_enpassant == [old, new]:
                                     enpassant = 1
 
-                                sprites.update_board(old, new, piece, enpassant, promotion_icon)
-                                data = f"{old},{new},{piece},{enpassant}" # unsafe af, but who gives a shit?
+                                if logic.possible_kingside_castle == [old, new]:
+                                    o_o = 1
+
+                                if logic.possible_queenside_castle == [old, new]:
+                                    o_o_o = 1
+
+                                sprites.update_board(old, new, piece, True, enpassant, o_o, o_o_o, promotion_icon)
+                                data = f"{old},{new},{piece},{enpassant},{o_o},{o_o_o},{promotion_icon}" # unsafe af, but who gives a shit?
                                 sock.sendall(bytes(data, 'utf-8'))
                                 old = ""
                                 new = ""
@@ -649,8 +721,9 @@ def main():
             ready = select.select([sock], [], [], 0)
             if ready[0]:
                 data = sock.recv(4096)
-                old, new, piece, enpassant = data.decode().split(",")
-                sprites.update_board(old, new, int(piece), int(enpassant))
+                print(data.decode())
+                old, new, piece, enpassant, o_o, o_o_o, promotion_icon = data.decode().split(",")
+                sprites.update_board(old, new, int(piece), False, int(enpassant), int(o_o), int(o_o_o), promotion_icon)
                 logic.previous_opponent_move = [old, new, int(piece)]
                 turn = True
 
