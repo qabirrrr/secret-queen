@@ -714,9 +714,9 @@ def main():
             if ready[0]:
                 data = sock.recv(4096)
                 old, new, piece, enpassant, o_o, o_o_o, sp, promotion_icon = data.decode().split(",")
-                if new == secret_pawn: # secret queen has been captured
-                    secret_pawn = ""
                 sprites.update_board(old, new, int(piece), False, int(enpassant), int(o_o), int(o_o_o), sp, promotion_icon)
+                if new == secret_pawn or get_square(secret_pawn) == 0:# secret queen has been captured or en passanted
+                    secret_pawn = ""
                 logic.previous_opponent_move = [old, new, int(piece)]
                 turn = True
 
