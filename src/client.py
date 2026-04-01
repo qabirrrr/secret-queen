@@ -158,8 +158,6 @@ class Logic:
                             break
             return legal_moves
 
-        print("Bishop")
-
         letters_right = [] # letters beside
         letters_left = []
 
@@ -220,8 +218,9 @@ class Logic:
         return legals
 
     def queen(self, current_notation, clientcolor):
-        print("Queen")
-        return ["d4", "d5"]
+        diagonals = self.bishop(current_notation, clientcolor)
+        sides = self.rook(current_notation, clientcolor)
+        return diagonals + sides
     
     def king(self, current_notation, clientcolor):
         # king moves
