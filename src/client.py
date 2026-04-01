@@ -55,9 +55,56 @@ class Logic:
                     self.rook, self.knight, self.bishop, self.queen, self.king, self.pawn
         ]
 
-    def rook(self, current_notation, clientcolor): # -> todo: return legal moves in each function
-        print("Rook")
-        return ["d4", "d5"]
+    def rook(self, current_notation, clientcolor): 
+
+        def get_moves(ranges, current_notation, clientcolor, direction):
+            legal_moves = []
+            iterate = True 
+            for i in ranges:
+                if not iterate: break
+
+                if direction == "vertical": move_notation = f"{current_notation[0]}{i}"
+                if direction == "horizontal": move_notation = f"{letters[i]}{current_notation[1]}"
+
+                for square, notation in zip(board, notations):
+                    if move_notation == notation:
+                        if square != 0:
+                            if get_color(square) != clientcolor: legal_moves.append(notation)
+                            iterate = False
+                            break
+                        else:
+                            legal_moves.append(notation)
+                            break
+            return legal_moves
+
+        possibles = []
+        legals = []
+
+        current_rank = int(current_notation[1])
+
+        current_file = current_notation[0]
+        for i, letter in enumerate(letters):
+            if current_file == letter:
+                current_file_index = i
+
+        print("new")
+
+        up = get_moves(range(current_rank+1, 8+1), current_notation, clientcolor, "vertical")
+        down = get_moves(range(current_rank-1, 0, -1), current_notation, clientcolor, "vertical")
+        left = get_moves(range(current_file_index+1, 8), current_notation, clientcolor, "horizontal")
+        right = get_moves(range(current_file_index-1, -1, -1), current_notation, clientcolor, "horizontal")
+       
+        for i in range(current_file_index + 1, 8):
+            print(letters[i])
+        for i in range(current_file_index - 1, -1, -1):
+            print(letters[i])
+
+        legals += up
+        legals += down
+        legals += left
+        legals += right
+        
+        return legals
 
     def knight(self, current_notation, clientcolor):
         legals = []
@@ -65,20 +112,6 @@ class Logic:
 
         one_letter_beside = get_beside(current_notation[0])
         two_letter_beside = get_beside(current_notation[0], 2)
-        print(one_letter_beside)
-        print(two_letter_beside)
-
-        print("Do knight shit")
-
-        # letter , number
-        ## + 1 , + 2 
-        ## + 2 , + 1
-        # - 1 , - 2
-        # - 2, - 1
-        # + 2 , - 1
-        ## - 2 , + 1
-        ## - 1 , + 2
-        # + 1 , - 2
 
         for e in one_letter_beside:
             try: possibles.append (f"{e}{int(current_notation[1]) + 2}")
