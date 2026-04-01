@@ -93,18 +93,11 @@ class Logic:
             if current_file == letter:
                 current_file_index = i
 
-        print("new")
-
         up = get_moves(range(current_rank+1, 8+1), current_notation, clientcolor, "vertical")
         down = get_moves(range(current_rank-1, 0, -1), current_notation, clientcolor, "vertical")
         left = get_moves(range(current_file_index+1, 8), current_notation, clientcolor, "horizontal")
         right = get_moves(range(current_file_index-1, -1, -1), current_notation, clientcolor, "horizontal")
        
-        for i in range(current_file_index + 1, 8):
-            print(letters[i])
-        for i in range(current_file_index - 1, -1, -1):
-            print(letters[i])
-
         legals += up
         legals += down
         legals += left
@@ -144,7 +137,6 @@ class Logic:
                         if get_color(square) != clientcolor:
                             legals.append(possible)
         
-        print("Knight")
         return legals
 
     def bishop(self, current_notation, clientcolor):
@@ -208,14 +200,7 @@ class Logic:
         right_down = get_moves(possibles_right_down, clientcolor)
         left_up = get_moves(possibles_left_up, clientcolor)
         right_up = get_moves(possibles_right_up, clientcolor)
-
-        print(f"Legal Moves:")
-            
-        print(left_down)
-        print(right_down)
-        print(left_up)
-        print(right_up)
-        
+    
         legals += left_down
         legals += right_down
         legals += left_up
@@ -280,8 +265,6 @@ class Logic:
                     legals += [f"c{current_notation[1]}"]
                     self.possible_queenside_castle.append(current_notation)
                     self.possible_queenside_castle.append(f"c{current_notation[1]}")
-
-        print(legals)
         return legals
 
     def pawn(self, current_notation, clientcolor):
@@ -316,15 +299,12 @@ class Logic:
         try:
             if int(self.previous_opponent_move[1][1]) == int(self.previous_opponent_move[0][1]) + enemy_double_push:
                 beside_letters = get_beside(self.previous_opponent_move[1][0])
-                print(beside_letters)
                 if current_notation[0] in beside_letters and int(current_notation[1]) == int(self.previous_opponent_move[1][1]):
                     enpassant = True
         except: pass
 
-        print(enpassant)
         if enpassant:
             enpassant_notation = f"{self.previous_opponent_move[1][0]}{int(self.previous_opponent_move[1][1])+next_square}"
-            print(enpassant_notation)
             self.possible_enpassant = [current_notation, enpassant_notation]
             legal_moves += [enpassant_notation]
 
@@ -448,9 +428,6 @@ class Sprites:
                 g_queenside_castle_possible = False
                 g_kingside_castle_possible = False    
 
-        print(f"O_O: {o_o}")
-        print(f"O_O_O: {o_o_o}")
-
         global g_castled
         if o_o:
             rank = int(new_notation[1])
@@ -473,12 +450,6 @@ class Sprites:
                     else: board[i] = BLACK_ROOK
             if me:
                 g_castled = True
-
-        print(g_queenside_castle_possible)
-        print(g_kingside_castle_possible)
-        
-        print("Updated")
-        print(old_notation, new_notation, piece)
 
     def render_board(self, screen, clientcolor):
         for notation, square in zip(notations, board):
@@ -587,7 +558,6 @@ def select_piece(notation, square, logic, clientcolor): # -> todo: also return l
     old = notation
     piece = square
     legal_moves = logic.pieces[square-1](old, clientcolor)
-    print(f"Legal moves are {legal_moves}")
     return legal_moves, old, piece
     
 
@@ -619,6 +589,8 @@ def main():
     HOST = "127.0.0.1"
     PORT = 65432
 
+    start = False
+
     legal_moves = []
 
     promotion_icon = "Q"
@@ -627,7 +599,6 @@ def main():
         sock.connect((HOST, PORT))
         
         clientcolor = (sock.recv(1024)).decode()
-        print(clientcolor)
 
         if clientcolor == "white":
             turn = True
@@ -660,78 +631,86 @@ def main():
                         promotion_icon = "N"
                     elif event.key == pygame.K_r:
                         promotion_icon = "R"
-                    print(promotion_icon)
 
             mousepos = pygame.mouse.get_pos()
-            for rect, notation in zip(rects, notations):
-                if rect.collidepoint(mousepos) and clicked:
-                    print(f"Clicked on {notation}")
-
-            if clicked and turn:
-                state = (state + 1) % 2
-                
-                if state == 0: # select a piece
-                    for square, notation, rect in zip(board, notations, rects):
-                        if rect.collidepoint(mousepos):
-                            if get_color(square) != clientcolor: # can only select my own color
-                                state = 1
-                                break
-                            legal_moves, old, piece = select_piece(notation, square, logic, clientcolor)
-
-                else: # move the piece
-                    for square, notation, rect in zip(board, notations, rects):
-                        if rect.collidepoint(mousepos):
-                            if get_color(square) == clientcolor: # cannot capture my own color. instead, select it as new piece
+            
+            if start:
+                if clicked and turn:
+                    state = (state + 1) % 2
+                    
+                    if state == 0: # select a piece
+                        for square, notation, rect in zip(board, notations, rects):
+                            if rect.collidepoint(mousepos):
+                                if get_color(square) != clientcolor: # can only select my own color
+                                    state = 1
+                                    break
                                 legal_moves, old, piece = select_piece(notation, square, logic, clientcolor)
-                                state = 0
-                                break
-                            
-                            if notation in legal_moves:
-                                enpassant = 0
-                                o_o = 0
-                                o_o_o = 0
-                                new = notation
 
-                                if logic.possible_enpassant == [old, new]:
-                                    enpassant = 1
+                    else: # move the piece
+                        for square, notation, rect in zip(board, notations, rects):
+                            if rect.collidepoint(mousepos):
+                                if get_color(square) == clientcolor: # cannot capture my own color. instead, select it as new piece
+                                    legal_moves, old, piece = select_piece(notation, square, logic, clientcolor)
+                                    state = 0
+                                    break
+                                
+                                if notation in legal_moves:
+                                    enpassant = 0
+                                    o_o = 0
+                                    o_o_o = 0
+                                    new = notation
 
-                                if logic.possible_kingside_castle == [old, new]:
-                                    o_o = 1
+                                    if logic.possible_enpassant == [old, new]:
+                                        enpassant = 1
 
-                                if logic.possible_queenside_castle == [old, new]:
-                                    o_o_o = 1
+                                    if logic.possible_kingside_castle == [old, new]:
+                                        o_o = 1
 
-                                sprites.update_board(old, new, piece, True, enpassant, o_o, o_o_o, promotion_icon)
-                                data = f"{old},{new},{piece},{enpassant},{o_o},{o_o_o},{promotion_icon}" # unsafe af, but who gives a shit?
-                                sock.sendall(bytes(data, 'utf-8'))
-                                old = ""
-                                new = ""
-                                piece = ""
-                                legal_moves = []
-                                turn = False
+                                    if logic.possible_queenside_castle == [old, new]:
+                                        o_o_o = 1
 
-                            else:
-                                state = 0
-                                break
+                                    sprites.update_board(old, new, piece, True, enpassant, o_o, o_o_o, promotion_icon)
+                                    data = f"{old},{new},{piece},{enpassant},{o_o},{o_o_o},{promotion_icon}" # unsafe af, but who gives a shit?
+                                    sock.sendall(bytes(data, 'utf-8'))
+                                    old = ""
+                                    new = ""
+                                    piece = ""
+                                    legal_moves = []
+                                    turn = False
 
-            screen.blit(sprites.board, (0,0))
+                                else:
+                                    state = 0
+                                    break
+            else:
+                if clicked:
+                    for i in range(len(board)):
+                                if rects[i].collidepoint(mousepos):
+                                    if get_color(board[i]) == clientcolor:
+                                        if clientcolor == "white":
+                                            board[i] = WHITE_QUEEN
+                                        else:
+                                            board[i] = BLACK_QUEEN
+                                        start = True
+                                        break
+
 
             sock.setblocking(0)
 
             ready = select.select([sock], [], [], 0)
             if ready[0]:
                 data = sock.recv(4096)
-                print(data.decode())
                 old, new, piece, enpassant, o_o, o_o_o, promotion_icon = data.decode().split(",")
                 sprites.update_board(old, new, int(piece), False, int(enpassant), int(o_o), int(o_o_o), promotion_icon)
                 logic.previous_opponent_move = [old, new, int(piece)]
                 turn = True
 
+            screen.blit(sprites.board, (0,0))
+
             for coord, label in zip(coords,labels):
                 screen.blit(label, coord)
 
             sprites.render_board(screen, clientcolor)
-            render_legals(screen, rects, legal_moves)
+            if start: render_legals(screen, rects, legal_moves)
 
             pygame.display.flip()
             clock.tick(60)

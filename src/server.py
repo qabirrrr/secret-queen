@@ -8,18 +8,13 @@ def main():
         s.bind((HOST, PORT))
         s.listen()
 
-        print("Server is running!")
-
         conn, addr = s.accept()
-        print("User 1 has connected")
 
         conn2, addr2 = s.accept()
-        print("User 2 has connected")
 
         turn = 1 # it'll start at 0
 
         with conn and conn2:
-            print("\nBoth users have joined\n")
             conn.sendall(b"white")
             conn2.sendall(b"black")
             while True:
@@ -27,13 +22,11 @@ def main():
 
                 if turn == 0:
                     data = conn.recv(4096)
-                    print(data)
                     if not data: break
                     conn2.sendall(data)
                 
                 else:
                     data = conn2.recv(4096)
-                    print(data)
                     if not data: break
                     conn.sendall(data)
 
