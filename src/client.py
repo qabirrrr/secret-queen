@@ -565,6 +565,10 @@ def main():
     screen = pygame.display.set_mode((512, 512))
     clock = pygame.time.Clock()
 
+    pygame.display.set_caption("Secret Queen")
+    icon = pygame.image.load('res/wQ.png')
+    pygame.display.set_icon(icon)
+
     font = pygame.font.SysFont("monospace", 45)
 
     text_width, text_height = font.size("xxxxx wins!")
@@ -588,7 +592,7 @@ def main():
     new = ""
     piece = ""
 
-    HOST = "127.0.0.1"
+    HOST = input("Host: ")
     PORT = 65432
 
     start = False
