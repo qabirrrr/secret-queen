@@ -565,7 +565,10 @@ def main():
     screen = pygame.display.set_mode((512, 512))
     clock = pygame.time.Clock()
 
-    font = pygame.font.SysFont("monospace", 15)
+    font = pygame.font.SysFont("monospace", 45)
+
+    text_width, text_height = font.size("xxxxx wins!")
+    win_msg = font.render("-", 1, "red")
     
     labels = []
     coords = []
@@ -631,6 +634,26 @@ def main():
                         promotion_icon = "N"
                     elif event.key == pygame.K_r:
                         promotion_icon = "R"
+
+            white_king_present = False
+            black_king_present = False
+
+            for square in board:
+                if square == WHITE_KING:
+                    white_king_present = True
+                if square == BLACK_KING:
+                    black_king_present = True
+
+            if not black_king_present: win_msg = font.render("White wins!", 1, "red")
+            if not white_king_present: win_msg = font.render("Black wins!", 1, "red")
+
+            if not white_king_present or not black_king_present:
+                screen.blit(sprites.board, (0,0))
+                sprites.render_board(screen, clientcolor)
+                screen.blit(win_msg, ((512-text_width)/2, (512-text_height)/2))
+                pygame.display.flip()
+                clock.tick(60)
+                continue
 
             mousepos = pygame.mouse.get_pos()
             
@@ -721,11 +744,8 @@ def main():
                 turn = True
 
             screen.blit(sprites.board, (0,0))
-
-            for coord, label in zip(coords,labels):
-                screen.blit(label, coord)
-
             sprites.render_board(screen, clientcolor)
+
             if start: render_legals(screen, rects, legal_moves)
 
             pygame.display.flip()
