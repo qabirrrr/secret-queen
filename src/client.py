@@ -8,6 +8,8 @@ PIECE_SIZE = 48 # each piece on the board is 48 by 48
 
 ALPHABETS = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
 
+letters = list(reversed((ALPHABETS))) # ['a', 'b', ..]
+
 # enums
 # 0 = empty
 WHITE_ROOK = 1
@@ -58,8 +60,53 @@ class Logic:
         return ["d4", "d5"]
 
     def knight(self, current_notation, clientcolor):
+        legals = []
+        possibles = []
+
+        one_letter_beside = get_beside(current_notation[0])
+        two_letter_beside = get_beside(current_notation[0], 2)
+        print(one_letter_beside)
+        print(two_letter_beside)
+
+        print("Do knight shit")
+
+        # letter , number
+        ## + 1 , + 2 
+        ## + 2 , + 1
+        # - 1 , - 2
+        # - 2, - 1
+        # + 2 , - 1
+        ## - 2 , + 1
+        ## - 1 , + 2
+        # + 1 , - 2
+
+        for e in one_letter_beside:
+            try: possibles.append (f"{e}{int(current_notation[1]) + 2}")
+            except: pass
+
+        for e in two_letter_beside:
+            try: possibles.append (f"{e}{int(current_notation[1]) + 1}")
+            except: pass
+
+        for e in one_letter_beside:
+            try:
+                if int(current_notation[1]) > 2: possibles.append (f"{e}{int(current_notation[1]) - 2}")
+            except: pass
+
+        for e in two_letter_beside:
+            try: 
+                if int(current_notation[1]) > 1: possibles.append (f"{e}{int(current_notation[1]) - 1}")
+            except: pass
+
+        for possible in possibles:
+            if possible in notations:
+                for square, notation in zip(board, notations):
+                    if notation == possible:
+                        if get_color(square) != clientcolor:
+                            legals.append(possible)
+        
         print("Knight")
-        return ["d4", "d5"]
+        return legals
 
     def bishop(self, current_notation, clientcolor):
         print("Bishop")
@@ -77,9 +124,6 @@ class Logic:
         
         possibles = []
         legals = []
-
-        alps = list(ALPHABETS)
-        alps.reverse()
 
         besides = get_beside(current_notation[0])
 
@@ -305,18 +349,17 @@ class Sprites:
 
         screen.blit(piece, place_piece(notation, clientcolor))
 
-def get_beside(letter): # -> returns letters beside pawn
+def get_beside(letter, n = 1): # -> returns letters beside pawn
     ml = []
-    alps = list(ALPHABETS)
-    alps.reverse()
-    for i, each in enumerate(alps):
+    
+    for i, each in enumerate(letters):
         if each == letter:
             try: 
-                if each != 'h': ml.append(alps[i+1])
+                if i < len(letters) - n: ml.append(letters[i+n])
             except: pass
 
             try: 
-                if each != 'a': ml.append(alps[i-1])
+                if i >= n: ml.append(letters[i-n])
             except: pass
     return ml
 
