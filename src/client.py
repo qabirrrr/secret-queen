@@ -371,7 +371,7 @@ class Sprites:
         texture = pygame.transform.scale(texture, scale)
         return texture
     
-    def update_board(self, old_notation, new_notation, piece, me, enpassant = 0, o_o = 0, o_o_o = 0, promotion_icon = "Q"):
+    def update_board(self, old_notation, new_notation, piece, me, enpassant, o_o, o_o_o, secret_pawn, promotion_icon):
         for i in range(len(notations)):
             if notations[i] == old_notation:
                 board[i] = 0
@@ -382,7 +382,6 @@ class Sprites:
         # pawn promotion
         # (later on make it so you can choose knight, bishop or rook)
         if piece == WHITE_PAWN:
-
             if promotion_icon == "Q":
                 promotion_piece = WHITE_QUEEN
             elif promotion_icon == "N":
@@ -392,7 +391,7 @@ class Sprites:
             elif promotion_icon == "R":
                 promotion_piece = WHITE_ROOK
 
-            if int(new_notation[1]) == 8:
+            if int(new_notation[1]) == 8 and new_notation != secret_pawn:
                 board[new_idx] = promotion_piece
 
         elif piece == BLACK_PAWN:
@@ -405,7 +404,7 @@ class Sprites:
             elif promotion_icon == "R":
                 promotion_piece = BLACK_ROOK
 
-            if int(new_notation[1]) == 1:
+            if int(new_notation[1]) == 1 and new_notation != secret_pawn:
                 board[new_idx] = promotion_piece
 
         # en passant
@@ -592,6 +591,7 @@ def main():
     start = False
 
     legal_moves = []
+    secret_pawn = ""
 
     promotion_icon = "Q"
 
@@ -669,8 +669,21 @@ def main():
                                     if logic.possible_queenside_castle == [old, new]:
                                         o_o_o = 1
 
-                                    sprites.update_board(old, new, piece, True, enpassant, o_o, o_o_o, promotion_icon)
-                                    data = f"{old},{new},{piece},{enpassant},{o_o},{o_o_o},{promotion_icon}" # unsafe af, but who gives a shit?
+                                    sprites.update_board(old, new, piece, True, enpassant, o_o, o_o_o, secret_pawn, promotion_icon)
+
+                                    if clientcolor == "white":
+                                        if piece == WHITE_QUEEN:
+                                            if old == secret_pawn:
+                                                piece = WHITE_PAWN
+                                                secret_pawn = new
+
+                                    elif clientcolor == "black":
+                                        if piece == BLACK_QUEEN:
+                                            if old == secret_pawn:
+                                                piece = BLACK_PAWN
+                                                secret_pawn = new
+
+                                    data = f"{old},{new},{piece},{enpassant},{o_o},{o_o_o},{secret_pawn},{promotion_icon}" # unsafe af, but who gives a shit?
                                     sock.sendall(bytes(data, 'utf-8'))
                                     old = ""
                                     new = ""
@@ -690,6 +703,7 @@ def main():
                                             board[i] = WHITE_QUEEN
                                         else:
                                             board[i] = BLACK_QUEEN
+                                        secret_pawn = notations[i]
                                         start = True
                                         break
 
@@ -699,8 +713,10 @@ def main():
             ready = select.select([sock], [], [], 0)
             if ready[0]:
                 data = sock.recv(4096)
-                old, new, piece, enpassant, o_o, o_o_o, promotion_icon = data.decode().split(",")
-                sprites.update_board(old, new, int(piece), False, int(enpassant), int(o_o), int(o_o_o), promotion_icon)
+                old, new, piece, enpassant, o_o, o_o_o, sp, promotion_icon = data.decode().split(",")
+                if new == secret_pawn: # secret queen has been captured
+                    secret_pawn = ""
+                sprites.update_board(old, new, int(piece), False, int(enpassant), int(o_o), int(o_o_o), sp, promotion_icon)
                 logic.previous_opponent_move = [old, new, int(piece)]
                 turn = True
 
