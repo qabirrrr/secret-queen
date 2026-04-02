@@ -610,7 +610,7 @@ def main():
     legal_moves = []
     secret_pawn = ""
 
-    hover_index = 0 # for start
+    secret_hover = None # for start
 
     promotion_icon = "Q"
 
@@ -737,12 +737,18 @@ def main():
                 for i in range(len(board)):
                         if rects[i].collidepoint(mousepos):
                             if get_color(board[i]) == clientcolor:
-                                if clicked:
-                                    if clientcolor == "white" and board[i] == WHITE_PAWN:
+                                if clientcolor == "white" and board[i] == WHITE_PAWN:
+                                        if secret_hover != i and secret_hover != None:
+                                            board[secret_hover] = WHITE_PAWN
                                         board[i] = WHITE_QUEEN
-                                    elif clientcolor == "black" and board[i] == BLACK_PAWN:
+                                        secret_hover = i
+                                elif clientcolor == "black" and board[i] == BLACK_PAWN:
+                                        if secret_hover != i and secret_hover != None:
+                                            board[secret_hover] = BLACK_PAWN
                                         board[i] = BLACK_QUEEN
+                                        secret_hover = i
 
+                                if clicked and secret_hover == i:
                                     secret_pawn = notations[i]
                                     start = True
                                     break
