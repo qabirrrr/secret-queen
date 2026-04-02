@@ -610,6 +610,8 @@ def main():
     legal_moves = []
     secret_pawn = ""
 
+    hover_index = 0 # for start
+
     promotion_icon = "Q"
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -732,17 +734,18 @@ def main():
                                     state = 0
                                     break
             else:
-                if clicked:
-                    for i in range(len(board)):
-                                if rects[i].collidepoint(mousepos):
-                                    if get_color(board[i]) == clientcolor:
-                                        if clientcolor == "white":
-                                            board[i] = WHITE_QUEEN
-                                        else:
-                                            board[i] = BLACK_QUEEN
-                                        secret_pawn = notations[i]
-                                        start = True
-                                        break
+                for i in range(len(board)):
+                        if rects[i].collidepoint(mousepos):
+                            if get_color(board[i]) == clientcolor:
+                                if clicked:
+                                    if clientcolor == "white" and board[i] == WHITE_PAWN:
+                                        board[i] = WHITE_QUEEN
+                                    elif clientcolor == "black" and board[i] == BLACK_PAWN:
+                                        board[i] = BLACK_QUEEN
+
+                                    secret_pawn = notations[i]
+                                    start = True
+                                    break
 
 
             sock.setblocking(0)
