@@ -11,7 +11,7 @@ There are no illegal moves, since that would reveal the secret queen
 
 You can also en passant a queen, which is my favourite part about this
 
-
+### Promotions
 
 Pawn promotions are set to Queen by default
 
