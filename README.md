@@ -11,6 +11,22 @@ There are no illegal moves, since that would reveal the secret queen
 
 You can also en passant a queen, which is my favourite part about this
 
+
+
+Pawn promotions are set to Queen by default
+
+To change, before clicking on your promotion square, press the key indicating the piece
+
+Knight: 'N'
+
+Queen: 'Q'
+
+Bishop: 'B'
+
+Rook: 'R'
+
+You can change your promotion piece at any point during the game
+
 ## How To Host
 This game is self hosting
 

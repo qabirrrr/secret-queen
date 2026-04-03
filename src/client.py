@@ -354,22 +354,22 @@ class Logic:
 
 class Sprites:
     def __init__(self):
-        self.board = self.load_texture(resource_path("res/board.png"), (512, 512))
-        self.black_pawn = self.load_texture(resource_path("res/bP.png"))
-        self.black_rook = self.load_texture(resource_path("res/bR.png"))
-        self.black_knight = self.load_texture(resource_path("res/bN.png"))
-        self.black_bishop = self.load_texture(resource_path("res/bB.png"))
-        self.black_king = self.load_texture(resource_path("res/bK.png"))
-        self.black_queen = self.load_texture(resource_path("res/bQ.png"))
-        self.white_pawn = self.load_texture(resource_path("res/wP.png"))
-        self.white_rook = self.load_texture(resource_path("res/wR.png"))
-        self.white_knight = self.load_texture(resource_path("res/wN.png"))
-        self.white_bishop = self.load_texture(resource_path("res/wB.png"))
-        self.white_king = self.load_texture(resource_path("res/wK.png"))
-        self.white_queen = self.load_texture(resource_path("res/wQ.png"))
+        self.board = self.load_texture("res/board.png", (512, 512))
+        self.black_pawn = self.load_texture("res/bP.png")
+        self.black_rook = self.load_texture("res/bR.png")
+        self.black_knight = self.load_texture("res/bN.png")
+        self.black_bishop = self.load_texture("res/bB.png")
+        self.black_king = self.load_texture("res/bK.png")
+        self.black_queen = self.load_texture("res/bQ.png")
+        self.white_pawn = self.load_texture("res/wP.png")
+        self.white_rook = self.load_texture("res/wR.png")
+        self.white_knight = self.load_texture("res/wN.png")
+        self.white_bishop = self.load_texture("res/wB.png")
+        self.white_king = self.load_texture("res/wK.png")
+        self.white_queen = self.load_texture("res/wQ.png")
 
     def load_texture(self, fp, scale = (PIECE_SIZE, PIECE_SIZE)):
-        texture = pygame.image.load(fp)
+        texture = pygame.image.load(resource_path(fp))
         texture = pygame.transform.scale(texture, scale)
         return texture
     
