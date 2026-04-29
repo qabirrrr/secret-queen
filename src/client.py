@@ -522,7 +522,25 @@ def get_beside(letter, n = 1): # -> returns letters beside pawn
 def render_legals(screen, rects, legal_moves):
     for notation, rec in zip(notations, rects):
         if notation in legal_moves:
-            pygame.draw.rect(screen, "black", rec)
+            pygame.draw.rect(screen, "black", rec, 3)
+
+def render_prev(screen, rects, opp_prev, my_prev, turn):
+    try:
+        if turn:
+            for notation, rec in zip(notations, rects):
+                if notation == opp_prev[0]:
+                    pygame.draw.rect(screen, "yellow", rec)
+                if notation == opp_prev[1]:
+                    pygame.draw.rect(screen, "yellow", rec)
+        else:
+             for notation, rec in zip(notations, rects):
+                if notation == my_prev[0]:
+                    pygame.draw.rect(screen, "yellow", rec)
+                if notation == my_prev[1]:
+                    pygame.draw.rect(screen, "yellow", rec)
+    except:
+        pass
+        
 
 def get_color(square):
     if square >= 1 and square <= 6:
@@ -613,6 +631,8 @@ def main():
     secret_hover = None # for start
 
     promotion_icon = "Q"
+
+    my_prev_moves = []
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
@@ -724,6 +744,7 @@ def main():
 
                                     data = f"{old},{new},{piece},{enpassant},{o_o},{o_o_o},{secret_pawn},{promotion_icon}" # unsafe af, but who gives a shit?
                                     sock.sendall(bytes(data, 'utf-8'))
+                                    my_prev_moves = [old, new, int(piece)]
                                     old = ""
                                     new = ""
                                     piece = ""
@@ -767,6 +788,8 @@ def main():
                 turn = True
 
             screen.blit(sprites.board, (0,0))
+            render_prev(screen, rects, logic.previous_opponent_move, my_prev_moves, turn)
+
             sprites.render_board(screen, clientcolor)
 
             if start: render_legals(screen, rects, legal_moves)
