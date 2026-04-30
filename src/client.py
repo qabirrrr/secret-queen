@@ -584,7 +584,7 @@ def place_piece(notation, clientcolor):
 def select_piece(notation, square, logic, clientcolor): # -> todo: also return legal moves 
     old = notation
     piece = square
-    legal_moves = logic.pieces[square-1](old, clientcolor)
+    legal_moves = logic.pieces[piece-1](old, clientcolor)
     return legal_moves, old, piece
     
 
